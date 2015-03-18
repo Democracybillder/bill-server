@@ -17,29 +17,43 @@ class BillTCPServer(SocketServer.ThreadingTCPServer):
 class BillTCPServerHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
-            requestSize = 10
             myBuffer = ''
+            # The first 10 bytes should contain info about how much other data is being
+            # sent in the request, so we need to get at least 10 bytes before we
+            # parse anything.
+            while len(myBuffer) < 10:
+                data = self.request.recv(BUFFSIZE)
+                myBuffer += data
+                if data != '':
+                    print "Received: " + data
+
+            # Determine how much data is being sent.
+            requestSize = int(myBuffer[:10])
+            myBuffer = myBuffer[10:]
+
+            # Wait for the rest of the data
             while len(myBuffer) < requestSize:
                 data = self.request.recv(BUFFSIZE)
-                print data
-                if (myBuffer == ''):
-                    # the first 10 bytes should contain info about how much data is being sent in the request
-                    requestSize = int(data[:10])
-                    myBuffer += data[10:]
-                else:
-                    myBuffer += data
-            print myBuffer
-            data = json.loads(myBuffer.strip())
-            # send some 'ok' back
-            if 'numAdditionalBills' in data and isinstance(data['numAdditionalBills'], (int, long)):
+                if data != '':
+                    print "Received2: " + data
+                myBuffer += data
+            request = json.loads(myBuffer.strip())
+
+            # Send the appropriate number of additional Bills.
+            if 'numAdditionalBills' in request and isinstance(request['numAdditionalBills'], (int, long)):
                 newBills = []
-                for i in range(0, data['numAdditionalBills']):
+
+                # Currently we randomize the bills, but we should eventually populate this using
+                # presorted lists of bills.
+                for i in range(0, request['numAdditionalBills']):
                     newBill = bill.Bill(random.randint(0, 10000000), 1)
                     newBills.append(newBill.getDictionary())
                     jsonBills = json.dumps({'additionalBills' : newBills})
                 print jsonBills
-                self.request.sendall(jsonBills)
+
+                # Add the length of the response (not including the first 10 bytes) in the
+                # first 10 bytes.
+                lenString = "%010d" % len(jsonBills)
+                self.request.sendall(lenString + jsonBills)
         except Exception, e:
             print "Exception wile receiving message: ", e
-        
-        

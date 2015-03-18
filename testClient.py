@@ -12,6 +12,7 @@ s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect(('localhost', 8080))
 toSend = json.dumps(sendData)
 lenString = "%010d" % len(toSend)
+print lenString + toSend
 s.send(lenString + toSend)
 myBuffer = ''
 data = True

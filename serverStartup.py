@@ -7,9 +7,8 @@ import getopt
 
 
 help_message = '''
-A script for running the simple bill server.
--v for verbose
--o to specify output
+A script for running the simple bill tcp server.
+-o to specify where to send output
 '''
 
 
@@ -26,20 +25,19 @@ def main(argv=None):
             opts, args = getopt.getopt(argv[1:], "ho:v", ["help", "output="])
         except getopt.error, msg:
             raise Usage(msg)
-    
-        # option processing
+
+        # Option processing.
         for option, value in opts:
-            if option == "-v":
-                verbose = True
             if option in ("-h", "--help"):
                 raise Usage(help_message)
             if option in ("-o", "--output"):
                 sys.stdout = open(value, 'w')
-        
+
+        # Start the server.
         server = billtcpserver.BillTCPServer('localhost', 8080)
         print 'Starting server, use <Ctrl-C> to stop'
         server.serve_forever()
-    
+
     except Usage, err:
         print >> sys.stderr, sys.argv[0].split("/")[-1] + ": " + str(err.msg)
         print >> sys.stderr, "\t for help use --help"
