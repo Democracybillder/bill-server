@@ -6,7 +6,8 @@ import json
 import bill
 import random
 
-BUFFSIZE = 1024;
+BUFFSIZE = 1024
+SIZINGBYTES = 15 # THIS MUST MATCH UP WITH THE VALUE IN THE APP
 
 class BillTCPServer(SocketServer.ThreadingTCPServer):
     allow_reuse_address = True
@@ -18,18 +19,18 @@ class BillTCPServerHandler(SocketServer.BaseRequestHandler):
     def handle(self):
         try:
             myBuffer = ''
-            # The first 10 bytes should contain info about how much other data is being
-            # sent in the request, so we need to get at least 10 bytes before we
+            # The first SIZINGBYTES bytes should contain info about how much other data is being
+            # sent in the request, so we need to get at least SIZINGBYTES bytes before we
             # parse anything.
-            while len(myBuffer) < 10:
+            while len(myBuffer) < SIZINGBYTES:
                 data = self.request.recv(BUFFSIZE)
                 myBuffer += data
                 if data != '':
                     print "Received: " + data
 
             # Determine how much data is being sent.
-            requestSize = int(myBuffer[:10])
-            myBuffer = myBuffer[10:]
+            requestSize = int(myBuffer[:SIZINGBYTES])
+            myBuffer = myBuffer[SIZINGBYTES:]
 
             # Wait for the rest of the data
             while len(myBuffer) < requestSize:
@@ -37,6 +38,8 @@ class BillTCPServerHandler(SocketServer.BaseRequestHandler):
                 if data != '':
                     print "Received2: " + data
                 myBuffer += data
+
+            # Parse the json
             request = json.loads(myBuffer.strip())
 
             # Send the appropriate number of additional Bills.
@@ -51,9 +54,12 @@ class BillTCPServerHandler(SocketServer.BaseRequestHandler):
                     jsonBills = json.dumps({'additionalBills' : newBills})
                 print jsonBills
 
-                # Add the length of the response (not including the first 10 bytes) in the
-                # first 10 bytes.
-                lenString = "%010d" % len(jsonBills)
+                # Add the length of the response (not including the first SIZINGBYTES bytes) in the
+                # first SIZINGBYTES bytes.
+                lenString = "%d" % len(jsonBills)
+                while len(lenString) < SIZINGBYTES:
+                    lenString = "0" + lenString
+
                 self.request.sendall(lenString + jsonBills)
         except Exception, e:
             print "Exception wile receiving message: ", e
