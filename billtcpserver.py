@@ -8,6 +8,8 @@ import random
 
 BUFFSIZE = 1024
 SIZINGBYTES = 15 # THIS MUST MATCH UP WITH THE VALUE IN THE APP
+NUMBILLSKEY = 'numAdditionalBills'
+ADDITIONALBILLSKEY = 'additionalBills'
 
 class BillTCPServer(SocketServer.ThreadingTCPServer):
     allow_reuse_address = True
@@ -43,15 +45,16 @@ class BillTCPServerHandler(SocketServer.BaseRequestHandler):
             request = json.loads(myBuffer.strip())
 
             # Send the appropriate number of additional Bills.
-            if 'numAdditionalBills' in request and isinstance(request['numAdditionalBills'], (int, long)):
+            if NUMBILLSKEY in request and isinstance(request[NUMBILLSKEY], (int, long)):
                 newBills = []
 
                 # Currently we randomize the bills, but we should eventually populate this using
                 # presorted lists of bills.
-                for i in range(0, request['numAdditionalBills']):
+                for i in range(0, request[NUMBILLSKEY]):
                     newBill = bill.Bill(random.randint(0, 10000000), 1)
                     newBills.append(newBill.getDictionary())
-                    jsonBills = json.dumps({'additionalBills' : newBills})
+
+                jsonBills = json.dumps({ADDITIONALBILLSKEY : newBills})
                 print jsonBills
 
                 # Add the length of the response (not including the first SIZINGBYTES bytes) in the
